@@ -28,15 +28,37 @@ rm -f "${DMG_NAME}"
 rm -f "${DMG_RW}"
 
 # Build the project
-echo "📦 Building project..."
+#
+# IMPORTANT: this deliberately signs ad-hoc (CODE_SIGN_IDENTITY="-"), NOT
+# with whatever Xcode's "Automatically manage signing" + your free Apple ID
+# Personal Team would normally produce ("Sign to Run Locally" / an Apple
+# Development certificate).
+#
+# That distinction matters a lot here: since macOS Sierra, an app signed
+# with a Development certificate (which is what a free Personal Team
+# issues) is flatly BLOCKED by Gatekeeper on any Mac other than the one that
+# built it - there's no right-click → Open override for that case, it just
+# won't launch. Plain ad-hoc signing, on the other hand, is treated as an
+# ordinary "unidentified developer" app, which people CAN open via
+# right-click → Open on any Mac. Since there's no paid Developer ID
+# certificate to notarize with anyway, ad-hoc is the one that actually
+# reaches other people's machines.
+#
+# Trade-off to know about: ad-hoc identities aren't perfectly stable across
+# rebuilds, so people may occasionally need to re-grant Accessibility
+# permission after installing an update. Annoying, but not a blocker - and
+# it goes away entirely once you have a real Developer ID certificate.
+echo "📦 Building project (ad-hoc signed)..."
 xcodebuild \
     -scheme "${SCHEME}" \
     -configuration "${CONFIGURATION}" \
     -derivedDataPath "${BUILD_DIR}" \
     clean build \
-    CODE_SIGN_IDENTITY="" \
-    CODE_SIGNING_REQUIRED=NO \
-    CODE_SIGNING_ALLOWED=NO
+    CODE_SIGN_IDENTITY="-" \
+    CODE_SIGNING_REQUIRED=YES \
+    CODE_SIGNING_ALLOWED=YES \
+    CODE_SIGN_STYLE=Manual \
+    DEVELOPMENT_TEAM=""
 
 # Find the built app
 APP_PATH=$(find "${BUILD_DIR}" -name "${APP_NAME}" -type d 2>/dev/null | head -n 1)
@@ -53,6 +75,32 @@ if [ -z "$APP_PATH" ] || [ ! -d "$APP_PATH" ]; then
 fi
 
 echo "✅ Found app at: ${APP_PATH}"
+
+# Verify the app is signed ad-hoc as expected (this is the correct/desired
+# outcome for a no-paid-account distributable build - see the note above).
+echo ""
+echo "🔏 Verifying code signature..."
+SIGNATURE_INFO=$(codesign -dv "${APP_PATH}" 2>&1)
+if echo "$SIGNATURE_INFO" | grep -q "Signature=adhoc"; then
+    echo "✅ Signed ad-hoc, as expected for a no-paid-account distributable build."
+elif echo "$SIGNATURE_INFO" | grep -q "not signed"; then
+    echo "❌ App is NOT signed at all - something's wrong, this script forces ad-hoc signing."
+    echo "    Check the xcodebuild output above for signing errors."
+else
+    TEAM_ID=$(echo "$SIGNATURE_INFO" | grep "^TeamIdentifier=" | cut -d= -f2)
+    echo "⚠️  Signed with a real Team Identifier (${TEAM_ID:-unknown}), not ad-hoc."
+    echo "    If that's your free Personal Team's Development certificate, this"
+    echo "    build will likely be BLOCKED by Gatekeeper on any Mac other than"
+    echo "    this one - the ad-hoc override in this script should have"
+    echo "    prevented that. If you now have a real paid Developer ID"
+    echo "    certificate, this is expected and fine."
+fi
+echo ""
+
+# Confirm universal (Intel + Apple Silicon) binary
+echo "🏗  Verifying architectures..."
+lipo -info "${APP_PATH}/Contents/MacOS/${PROJECT_NAME}" || true
+echo ""
 
 # ----- DMG layout -----
 rm -rf "${DMG_TEMP}"
@@ -100,6 +148,16 @@ if [ ! -d "${MOUNT_POINT}" ]; then
         -ov -format UDZO -imagekey zlib-level=9 "${DMG_NAME}"
     rm -rf "${DMG_TEMP}"
 else
+    # Give the mounted DMG volume itself a custom icon (matches the app's
+    # own icon) so it doesn't show the generic blank disk icon in Finder
+    # once the DMG is opened.
+    if [ -f "${APP_PATH}/Contents/Resources/AppIcon.icns" ]; then
+        echo "🎨 Setting custom volume icon..."
+        cp "${APP_PATH}/Contents/Resources/AppIcon.icns" "${MOUNT_POINT}/.VolumeIcon.icns"
+        SetFile -c icnC "${MOUNT_POINT}/.VolumeIcon.icns"
+        SetFile -a C "${MOUNT_POINT}"
+    fi
+
     # AppleScript: set icon view, background, icon positions
     if [ -f "${MOUNT_POINT}/.background/dmg_background.png" ]; then
         BG_POSIX="${MOUNT_POINT}/.background/dmg_background.png"
@@ -130,14 +188,47 @@ EOF
     rm -f "${DMG_RW}"
 fi
 
+# Give the .dmg FILE ITSELF (as seen in Finder before it's even opened) a
+# custom icon - separate from the mounted volume's icon set above, since
+# these are two independent Finder-level attributes. Uses NSWorkspace's
+# public icon-setting API via a throwaway Swift script rather than the
+# older Rez/DeRez resource tools, which may not be present.
+if [ -f "${APP_PATH}/Contents/Resources/AppIcon.icns" ]; then
+    echo "🎨 Setting custom icon on the .dmg file itself..."
+    cat > /tmp/seticon.swift <<'SWIFT_EOF'
+import Cocoa
+let args = CommandLine.arguments
+guard args.count >= 3, let icon = NSImage(contentsOfFile: args[1]) else {
+    exit(1)
+}
+let success = NSWorkspace.shared.setIcon(icon, forFile: args[2], options: [])
+exit(success ? 0 : 1)
+SWIFT_EOF
+    swift /tmp/seticon.swift "${APP_PATH}/Contents/Resources/AppIcon.icns" "$(pwd)/${DMG_NAME}"
+    rm -f /tmp/seticon.swift
+fi
+
 echo "✅ DMG created successfully: ${DMG_NAME}"
 echo "📦 File size: $(du -h "${DMG_NAME}" | cut -f1)"
 echo ""
-echo "🎉 Done! You can now distribute ${DMG_NAME} to testers."
+echo "🎉 Done!"
 echo ""
-echo "📝 Instructions for testers:"
+echo "📝 Instructions for people installing it (no paid Developer ID yet, so"
+echo "   Gatekeeper will flag it as from an unidentified developer):"
 echo "   1. Double-click ${DMG_NAME} to mount it"
 echo "   2. Drag ${APP_NAME} to Applications folder"
-echo "   3. Open Applications and launch ${APP_NAME}"
+echo "   3. In Applications, RIGHT-CLICK ${APP_NAME} → Open (not double-click) the"
+echo "      first time - this is what lets Gatekeeper allow an app that isn't"
+echo "      from a paid Developer ID / notarized"
 echo "   4. Grant Accessibility permissions when prompted"
 echo "   5. The app will appear in the menu bar"
+echo ""
+echo "☑️  One thing to make sure of in Xcode before running this script:"
+echo "   - Release configuration's 'Code Signing Entitlements' build setting"
+echo "     points at KeySwitch-Release.entitlements, not the Debug one"
+echo ""
+echo "   (Signing & Capabilities' 'Automatically manage signing' / Personal"
+echo "   Team setting is what Xcode uses when YOU run/debug the app locally -"
+echo "   this script overrides that with ad-hoc signing for the distributable"
+echo "   build on purpose, since a Personal Team's Development certificate"
+echo "   would be blocked entirely on any Mac but this one.)"
