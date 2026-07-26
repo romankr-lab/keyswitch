@@ -1,76 +1,68 @@
 # KeySwitch
 
-A lightweight macOS menu bar app: **clipboard history** (ready to use) and **keyboard layout text transformation** (in development). No Dock icon — runs from the status bar only.
+A free, lightweight macOS menu bar app that combines **clipboard history** with **automatic keyboard layout correction**. No Dock icon — runs from the status bar only.
 
 ![macOS](https://img.shields.io/badge/macOS-14.0+-blue) ![Swift](https://img.shields.io/badge/Swift-5-orange) ![License](https://img.shields.io/badge/License-MIT-green)
 
-## Features
+![Clipboard menu](screenshots/clipboard-menu.png)
 
-- **Clipboard history (⌥ Option + V)** ✅ — Open a menu of recent copies; click an item to copy it to the clipboard and **paste it immediately** into the focused app (no extra ⌘V needed).
-- **Pin entries** — Star items to keep them at the top of the list.
-- **Text transformation (⌃ Control + T)** 🚧 *In development* — Planned: select text, press the hotkey; the app will convert it between keyboard layouts (e.g. US ↔ Ukrainian) and switch to the next layout. Not yet reliable in all apps.
-- **Settings** — Configure history size and toggle clipboard history on or off.
-- **Accessibility check on startup** — If access is missing, a window opens with a button that takes you straight to **System Settings → Privacy & Security → Accessibility**.
+## What it does
 
-## Requirements
+**Clipboard history** — every copy is saved. Open the menu from the status bar (or ⌥ Option + V), click any entry to copy it and paste it immediately into the focused app. Pin important entries to keep them at the top.
 
-- macOS 14.0 or later  
-- Apple Silicon or Intel  
-- **Accessibility** permission (for global hotkeys; required for future text transformation)
+**Layout correction** — fixes text typed in the wrong keyboard layout. Select the garbled text, press ⌥ Option + T, and KeySwitch converts it to the correct layout in place.
+
+| Before | After |
+|--------|-------|
+| ![Before](screenshots/layout-correction-before.png) | ![After](screenshots/layout-correction-after.png) |
+
+### Supported languages
+
+- Ukrainian
+- Russian
+- Belarusian
+- Bulgarian (Phonetic)
+- Serbian ↔ Latin
 
 ## Installation
 
-### From release (recommended)
-
-1. Open the [Releases](https://github.com/romankr-lab/KeySwitch/releases) page.
-2. Download the latest `KeySwitch.dmg`.
-3. Open the DMG and drag **KeySwitch.app** into **Applications**.
-4. Launch KeySwitch from Applications (or Spotlight).
-5. When prompted, grant **Accessibility** access in **System Settings → Privacy & Security → Accessibility**.
+1. Go to [Releases](https://github.com/romankr-lab/keyswitch/releases) and download the latest `KeySwitch.dmg`.
+2. Open the DMG and drag **KeySwitch.app** into **Applications**.
+3. In Applications, **right-click → Open** the first time (required since the app isn't notarized with a paid Developer ID — this is expected for a free, independently distributed app).
+4. Grant **Accessibility** access when prompted (**System Settings → Privacy & Security → Accessibility**). This is required for global hotkeys and layout correction.
+5. On first launch, KeySwitch will also ask if you'd like it to start automatically at login.
 
 ### Build from source
 
-1. Clone the repo:
-   ```bash
-   git clone https://github.com/romankr-lab/KeySwitch.git
-   cd KeySwitch
-   ```
-2. Open in Xcode and build (⌘B), or use the script:
-   ```bash
-   ./build_and_package.sh
-   ```
-   This produces `KeySwitch.dmg` in the project folder. See [BUILD_INSTRUCTIONS.md](BUILD_INSTRUCTIONS.md) for details.
-
-## Usage
-
-| Action | Shortcut | Status |
-|--------|----------|--------|
-| Clipboard history menu | **⌥ Option + V** | ✅ Works |
-| Transform selected text (layout swap) | **⌃ Control + T** | 🚧 In development |
-
-- **Status bar**: Click the KeySwitch icon to open the menu (history, settings, quit).
-- **Click to paste**: In the clipboard menu, clicking an item copies it and **pastes it automatically** into the frontmost app.
-
-## Project structure
-
+```bash
+git clone https://github.com/romankr-lab/keyswitch.git
+cd keyswitch
+./build_and_package.sh
 ```
-KeySwitch/
-├── KeySwitch/           # App source
-│   ├── AppDelegate.swift
-│   ├── main.swift
-│   ├── StatusBarController.swift
-│   ├── ClipboardHistoryManager.swift
-│   ├── LayoutManager.swift / LayoutTransformer.swift
-│   ├── TextSelectionManager.swift
-│   ├── AccessibilityPermissionWindow.swift
-│   └── ...
-├── build_and_package.sh  # Build and create DMG (with background and icon layout)
-├── build_and_zip.sh      # Build and create ZIP
-├── packaging/            # DMG background image and installer assets
-├── DISTRIBUTION.md       # Install & usage guide
-└── BUILD_INSTRUCTIONS.md # Build & packaging
-```
+
+This produces `KeySwitch.dmg` in the project folder. Or just open `KeySwitch.xcodeproj` in Xcode and build (⌘B).
+
+## Default shortcuts
+
+| Action | Shortcut |
+|--------|----------|
+| Open clipboard history menu | ⌥ Option + V |
+| Fix keyboard layout of selected text | ⌥ Option + T |
+
+Both shortcuts are configurable in Settings.
+
+## Settings
+
+![Settings](screenshots/settings.png)
+
+Configure shortcuts, clipboard history size, enabled languages, and Launch at Login.
+
+## Requirements
+
+- macOS 14.0 or later
+- Apple Silicon or Intel
+- Accessibility permission (for global hotkeys and text correction)
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE).
