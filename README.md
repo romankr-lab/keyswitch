@@ -64,8 +64,9 @@ KeySwitch/
 │   ├── TextSelectionManager.swift
 │   ├── AccessibilityPermissionWindow.swift
 │   └── ...
-├── build_and_package.sh  # Build and create DMG
+├── build_and_package.sh  # Build and create DMG (with background and icon layout)
 ├── build_and_zip.sh      # Build and create ZIP
+├── packaging/            # DMG background image and installer assets
 ├── DISTRIBUTION.md       # Install & usage guide
 └── BUILD_INSTRUCTIONS.md # Build & packaging
 ```

@@ -3,16 +3,16 @@ import ApplicationServices
 import os.log
 import Security
 
-/// Утиліта для діагностики проблем з Accessibility (оновлена для коректної роботи у релізі)
+/// Utility for diagnosing Accessibility issues (updated to work correctly in release builds)
 final class AccessibilityDebugHelper {
     static let shared = AccessibilityDebugHelper()
     private let logger = OSLog(subsystem: "com.romank.keyswitch", category: "AccessibilityDebug")
 
     private init() {}
 
-    // MARK: - Публічні методи
+    // MARK: - Public methods
 
-    /// Детальна перевірка всіх аспектів Accessibility
+    /// Detailed check of all Accessibility-related aspects
     func performDetailedCheck(requestPromptIfNeeded: Bool = false) {
         os_log("========== ACCESSIBILITY DEBUG START ==========", log: logger, type: .info)
         #if DEBUG
@@ -84,7 +84,7 @@ final class AccessibilityDebugHelper {
         print("9. Process ID: \(pid)")
         #endif
 
-        // 10. Спроба отримати системний елемент
+        // 10. Try to access a system element
         testAccessibilityAPI()
 
         os_log("========== ACCESSIBILITY DEBUG END ==========", log: logger, type: .info)
@@ -93,9 +93,9 @@ final class AccessibilityDebugHelper {
         #endif
     }
 
-    // MARK: - Приватні методи
+    // MARK: - Private methods
 
-    /// Перевіряє код-підпис програми з таймаутом і безпечним завершенням
+    /// Checks the app's code signature with a timeout and safe termination
     private func checkCodeSignature(timeout: TimeInterval = 3.0) {
         let codesignPath = "/usr/bin/codesign"
         guard FileManager.default.isExecutableFile(atPath: codesignPath) else {
@@ -152,20 +152,20 @@ final class AccessibilityDebugHelper {
         #endif
     }
 
-    /// Перевіряє чи програма в sandbox (entitlement або env)
+    /// Checks whether the app is sandboxed (via entitlement or environment)
     private func checkSandboxing() -> Bool {
-        // Спроба прочитати entitlement
+        // Try to read the entitlement
         if let task = SecTaskCreateFromSelf(nil),
            let value = SecTaskCopyValueForEntitlement(task, "com.apple.security.app-sandbox" as CFString, nil) {
             let enabled = (value as? NSNumber)?.boolValue ?? false
             return enabled
         }
-        // Фолбек на змінну середовища
+        // Fall back to an environment variable
         let environment = ProcessInfo.processInfo.environment
         return environment["APP_SANDBOX_CONTAINER_ID"] != nil
     }
 
-    /// Тестує базову функціональність Accessibility API
+    /// Tests basic Accessibility API functionality
     private func testAccessibilityAPI() {
         guard let frontApp = NSWorkspace.shared.frontmostApplication else {
             os_log("10. Cannot get frontmost application. Ensure an app window is active.", log: logger, type: .error)
@@ -177,7 +177,7 @@ final class AccessibilityDebugHelper {
 
         let appRef = AXUIElementCreateApplication(frontApp.processIdentifier)
 
-        // Спробуємо отримати focused window
+        // Try to get the focused window
         var focusedWindow: AnyObject?
         let focusedResult = AXUIElementCopyAttributeValue(appRef, kAXFocusedWindowAttribute as CFString, &focusedWindow)
 
@@ -190,7 +190,7 @@ final class AccessibilityDebugHelper {
         print("   - AXUIElementCopyAttributeValue (FocusedWindow) result: \(focusedResult.rawValue) (\(axErrorToString(focusedResult)))")
         #endif
 
-        // Додатково спробуємо отримати список вікон
+        // Also try to get the list of windows
         var windowsValue: AnyObject?
         let windowsResult = AXUIElementCopyAttributeValue(appRef, kAXWindowsAttribute as CFString, &windowsValue)
         os_log("   - AXUIElementCopyAttributeValue (Windows) result: %d (%{public}@)", log: logger, type: .info, windowsResult.rawValue, axErrorToString(windowsResult))
@@ -211,7 +211,7 @@ final class AccessibilityDebugHelper {
         }
     }
 
-    /// Конвертує AXError в читабельний текст
+    /// Converts an AXError into a readable string
     private func axErrorToString(_ error: AXError) -> String {
         switch error {
         case .success: return "success"
@@ -234,7 +234,7 @@ final class AccessibilityDebugHelper {
         }
     }
 
-    /// Показує alert з результатами діагностики (на головному потоці)
+    /// Shows an alert with the diagnostic results (on the main thread)
     func showDiagnosticAlert() {
         let show: () -> Void = {
             let isTrusted = AXIsProcessTrusted()
