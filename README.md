@@ -4,7 +4,7 @@ A free, lightweight macOS menu bar app that combines **clipboard history** with 
 
 ![macOS](https://img.shields.io/badge/macOS-14.0+-blue) ![Swift](https://img.shields.io/badge/Swift-5-orange) ![License](https://img.shields.io/badge/License-MIT-green)
 
-![Clipboard menu](screenshots/clipboard-menu.png)
+<img src="screenshots/clipboard-menu.png" width="420" alt="Clipboard menu">
 
 ## What it does
 
@@ -14,7 +14,7 @@ A free, lightweight macOS menu bar app that combines **clipboard history** with 
 
 | Before | After |
 |--------|-------|
-| ![Before](screenshots/layout-correction-before.png) | ![After](screenshots/layout-correction-after.png) |
+| <img src="screenshots/layout-correction-before.png" width="320" alt="Before"> | <img src="screenshots/layout-correction-after.png" width="320" alt="After"> |
 
 ### Supported languages
 
@@ -53,7 +53,7 @@ Both shortcuts are configurable in Settings.
 
 ## Settings
 
-![Settings](screenshots/settings.png)
+<img src="screenshots/settings.png" width="420" alt="Settings">
 
 Configure shortcuts, clipboard history size, enabled languages, and Launch at Login.
 
